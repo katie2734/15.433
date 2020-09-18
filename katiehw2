@@ -1,0 +1,184 @@
+library(lmtest)
+library(sandwich)
+library(tidyr)
+library(plm)
+library(dplyr)
+library(haven)
+library(foreign)
+
+#2a
+data1 <- read_dta("Desktop/2a.dta")
+list2a=c("exreturn_smallhi","exreturn_biglo","difftwo")
+model2a = lapply(list2a, function(x){
+  lm(formula= paste0("`", x, "`~ 1"), 
+     data= data1 ,na.action = na.omit)
+})
+
+test2a <- lapply(model2a, function(x){coeftest(x,vcov=NeweyWest(x,lag=6))})
+result2a=as.data.frame(do.call("rbind", test2a)[, 1:3])
+
+# Difference in CAPM Alpha
+diff=lm(difftwo~mktrf,data=data1)
+testdiff=coeftest(diff,vcov=NeweyWest(diff,lag=6))
+result2a_CAPM=as.data.frame(testdiff[, 1:3])
+
+#2b
+Book1 <- read_excel("Desktop/Book1.xlsx")
+trans=as.data.frame(t(Book1))
+
+#get excess return
+for( i in 1:length(data1) ) {
+     data1[i] <- data1[i] - data1[30]
+}
+
+write.dta(data1, "mydata.dta")
+
+
+new <- read_dta("2b.dta")
+varlist2b = setdiff(colnames(new), c("size", "BM"))
+
+#Loop over them and create model for each
+model2b1 = lapply(varilist2b, function(x){
+  lm(formula= paste0("`", x, "` ~ size+BM"), 
+     data= new ,na.action = na.omit)
+  
+})
+test2b <- lapply(model2b1, function(x){coeftest(x)})
+names(test2b) = varlist2b
+result2b=as.data.frame(do.call("rbind", test2b)[, 1:3])
+
+
+# get only  intercept
+trans1=as.data.frame(t(result2b))
+t=trans1[, -grep("size", colnames(trans1))]
+t=t[, -grep("BM", colnames(t))]
+t=t[1,]
+t=as.data.frame(t(t))
+t=rename(t, c("intercept"="Estimate"))
+
+# get only BM
+t1=trans1[, -grep("size", colnames(trans1))]
+t1=t1[, -grep("X", colnames(t1))]
+t1=t1[1,]
+t1=as.data.frame(t(t1))
+t1=rename(t1, c("BM"="Estimate"))
+
+# get only size
+t2=trans1[, -grep("BM", colnames(trans1))]
+t2=t2[, -grep("X", colnames(t2))]
+t2=t2[1,]
+t2=as.data.frame(t(t2))
+t2=rename(t2, c("size"="Estimate"))
+
+total=cbind(t,t1,t2)
+
+#Get all column names to run regression on
+varlist2b1= colnames(total)
+
+#Loop to creat model
+test2b1 = lapply(varlist2b1, function(x,vcov=NeweyWest(x,lag=6)){
+  lm(formula= paste0("`", x, "` ~ 1"), 
+     data= total ,na.action = na.omit)
+})
+test2b1 <- lapply(test2b1, function(x){coeftest(x)})
+names(test2b1) = varlist2b1
+resultfinal2b=as.data.frame(do.call("rbind", test2b1)[, 1:3])
+resultfinal2b$name=varlist2b1
+resultfinal2b=resultfinal2b[, c(4,1,2,3)]
+
+#2c
+new2 <- read_dta("book2.dta")
+
+#get excess return
+for( i in 1:length(new2) ) {
+  new2[i] <- new2[i] - new2[12]
+}
+
+write.dta(new2, "new2.dta")
+
+new2 <- read_dta("2c.dta")
+
+varlist2c = setdiff(colnames(new2), c("beta"))
+
+#Loop to creat model
+model2c = lapply(varlist2c, function(x){
+  lm(formula= paste0("`", x, "` ~ beta"), 
+     data= new2 ,na.action = na.omit)
+  
+})
+test2c <- lapply(model2c, function(x){coeftest(x)})
+names(test2c) = varlist2c
+result2c=as.data.frame(do.call("rbind", test2c)[, 1:3])
+
+
+# get only  intercept
+trans2=as.data.frame(t(result2c))
+tc=trans2[, -grep("beta", colnames(trans2))]
+tc=tc[1,]
+tc=as.data.frame(t(tc))
+tc=rename(tc, c("intercept"="Estimate"))
+
+# get only beta
+tc2=trans2[, -grep("X", colnames(trans2))]
+tc2=tc2[1,]
+tc2=as.data.frame(t(tc2))
+tc2=rename(tc2, c("beta"="Estimate"))
+
+total2=cbind(tc,tc2)
+
+#Get all column names to run regression on
+varlist2c1 = colnames(total2)
+
+#Loop to create model
+model2c1 = lapply(varlist2c1, function(x,vcov=NeweyWest(x,lag=6)){
+  lm(formula= paste0("`", x, "` ~ 1"), 
+     data= total2 ,na.action = na.omit)
+})
+test2c1 <- lapply(model2c1, function(x){coeftest(x)})
+names(test2c1) = varlist2c1
+resultfinal2c=as.data.frame(do.call("rbind", test2c1)[, 1:3])
+resultfinal2c$name=varlist2c1
+resultfinal2c=resultfinal2c[, c(4,1,2,3)]
+
+
+#3a
+3a <- read_dta("3a.dta")
+
+#get excess return
+for( i in 1:length(3a) ) {
+  3a[i] <- 3a[i] - 3a[22]
+}
+
+q3 <- read_dta("q3.dta")
+
+varlist3a = c("Lo10","Hi10","diff")
+
+#Loop to create model
+model3a = lapply(varlist3a, function(x){
+  lm(formula= paste0("`", x, "` ~ mktrf"), 
+     data= q4 ,na.action = na.omit)
+})
+
+test3a <- lapply(model3a, function(x){coeftest(x,vcov=NeweyWest(x,lag=6))})
+resultfinal3a=as.data.frame(do.call("rbind", test3a)[, 1:3])
+
+#3b
+
+h <- read_dta("3b.dta")
+
+#get excess return
+for( i in 1:2 ) {
+  h[i] <- h[i] - h[6]
+}
+h$diff=h$Hi10-h$Lo10
+varlist3b = c("Lo10","Hi10","diff")
+
+#Loop over them and create model for each
+model3b = lapply(varlist3b, function(x){
+  lm(formula= paste0("`", x, "` ~ mktrf+smb+hml"), 
+     data= h ,na.action = na.omit)
+})
+test3b <- lapply(model3b, function(x){coeftest(x,vcov=NeweyWest(x,lag=6))})
+names(test3b) = varlist3b
+resultfinal3b=as.data.frame(do.call("rbind", test3b)[, 1:3])
+
